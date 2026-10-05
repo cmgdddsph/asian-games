@@ -1,0 +1,44 @@
+name: Update Medals CSV
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-python-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install requests urllib3
+
+      - name: Fetch and Write Medals CSV
+        run: python update_medals.py
+
+      - name: Force Push Single Commit
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git checkout --orphan latest_temp
+          
+          # Stage only medals script, output CSV, and workflow
+          git add medals.csv update_medals.py .github/
+          
+          git commit -m "Auto-update medals tally [latest]"
+          
+          git branch -D main || true
+          git branch -m main
+          git push -f origin main
